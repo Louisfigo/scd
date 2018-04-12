@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 public class MovieController {
 
 	private static Logger logger = LoggerFactory.getLogger(MovieController.class);
+	
 	@Autowired
 	RestTemplate restTemplate;
 	
@@ -24,14 +25,14 @@ public class MovieController {
 	@GetMapping("/user/{id}")
 	public User findById(@PathVariable Long id)
 	{
-		return this.restTemplate.getForObject("http://localhost:8080/"+id, User.class);
+		return this.restTemplate.getForObject("http://MC-PROVIDER-USER:8080/"+id, User.class);
 	}
 	
 	@GetMapping("/log-instance")
-	public void logUserInstance()
+	public String logUserInstance()
 	{
 		ServiceInstance serviceInstance = this.loadBalanceClient.choose("mc-provider-user");
-		logger.info("{}:{}:{}",serviceInstance.getServiceId(),serviceInstance.getHost(),serviceInstance.getPort());
+		return serviceInstance.getServiceId()+";"+serviceInstance.getHost()+";"+serviceInstance.getPort();
 		
 	}
 }
