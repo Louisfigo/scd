@@ -8,16 +8,14 @@ import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
 
 
 @RestController
 public class MovieController {
 
-	private static Logger logger = LoggerFactory.getLogger(MovieController.class);
 	
 	@Autowired
-	RestTemplate restTemplate;
+	UserFeignClient userFeignClient;
 	
 	@Autowired
 	LoadBalancerClient loadBalanceClient;
@@ -25,7 +23,7 @@ public class MovieController {
 	@GetMapping("/user/{id}")
 	public User findById(@PathVariable Long id)
 	{
-		return this.restTemplate.getForObject("http://MC-PROVIDER-USER:8080/"+id, User.class);
+		return userFeignClient.findById(id);
 	}
 	
 	@GetMapping("/log-instance")
