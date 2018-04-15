@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import com.netflix.ribbon.proxy.annotation.Hystrix;
 
 import feign.Client;
 import feign.Contract;
@@ -37,6 +39,7 @@ public class MovieController {
 	            .target(NewUserFeignClient.class, "http:/MC-PROVIDER-USER/");
 	}
 	
+	@HystrixCommand(fallbackMethod="findIdFallBack")
 	@RequestMapping(value="/user/{id}",method=RequestMethod.GET)
 	public User findByUserId(@PathVariable Long id)
 	{
@@ -47,6 +50,11 @@ public class MovieController {
 	public User findByAdminId(@PathVariable Long id)
 	{
 		return adminFeignClient.findByUserId(id);
+	}
+	
+	public User findIdFallBack(Long id)
+	{
+		return new User();
 	}
 	
 
