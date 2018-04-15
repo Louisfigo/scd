@@ -1,36 +1,53 @@
 package org.louis.ms.sc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.cloud.netflix.feign.FeignClientsConfiguration;
+import org.springframework.context.annotation.Import;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 
+import feign.Client;
+import feign.Contract;
+import feign.Feign;
+import feign.auth.BasicAuthRequestInterceptor;
+import feign.codec.Decoder;
+import feign.codec.Encoder;
+
+@Import(FeignClientsConfiguration.class)
 @RestController
 public class MovieController {
 
 	
-	@Autowired
-	UserFeignClient userFeignClient;
+	private NewUserFeignClient userFeignClient;
 	
-	@Autowired
-	LoadBalancerClient loadBalanceClient;
 	
-	@GetMapping("/user/{id}")
-	public User findById(@PathVariable Long id)
-	{
-		return userFeignClient.findById(id);
+	private NewUserFeignClient adminFeignClient;
+	
+
+	@Autowired
+	public  MovieController(Decoder decoder,Encoder encoder,Client client,Contract contract) {
+
+	    this.userFeignClient = Feign.builder().client(client).encoder(encoder).decoder(decoder).contract(contract)
+	            .requestInterceptor(new BasicAuthRequestInterceptor("user", "password1")).target(NewUserFeignClient.class, "http://MC-PROVIDER-USER/");
+	        this.adminFeignClient = Feign.builder().client(client).encoder(encoder).decoder(decoder).contract(contract)
+	            .requestInterceptor(new BasicAuthRequestInterceptor("admin", "password2"))
+	            .target(NewUserFeignClient.class, "http:/MC-PROVIDER-USER/");
 	}
 	
-	@GetMapping("/log-instance")
-	public String logUserInstance()
+	@RequestMapping(value="/user/{id}",method=RequestMethod.GET)
+	public User findByUserId(@PathVariable Long id)
 	{
-		ServiceInstance serviceInstance = this.loadBalanceClient.choose("mc-provider-user");
-		return serviceInstance.getServiceId()+";"+serviceInstance.getHost()+";"+serviceInstance.getPort();
-		
+		return userFeignClient.findByUserId(id);
 	}
+	
+	@RequestMapping(value="/admin/{id}",method=RequestMethod.GET)
+	public User findByAdminId(@PathVariable Long id)
+	{
+		return adminFeignClient.findByUserId(id);
+	}
+	
+
 }
