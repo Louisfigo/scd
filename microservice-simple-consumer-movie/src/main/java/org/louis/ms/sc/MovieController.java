@@ -9,14 +9,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
-import com.netflix.ribbon.proxy.annotation.Hystrix;
 
 import feign.Client;
 import feign.Contract;
-import feign.Feign;
 import feign.auth.BasicAuthRequestInterceptor;
 import feign.codec.Decoder;
 import feign.codec.Encoder;
+import feign.hystrix.HystrixFeign;
 
 @Import(FeignClientsConfiguration.class)
 @RestController
@@ -32,11 +31,14 @@ public class MovieController {
 	@Autowired
 	public  MovieController(Decoder decoder,Encoder encoder,Client client,Contract contract) {
 
-	    this.userFeignClient = Feign.builder().client(client).encoder(encoder).decoder(decoder).contract(contract)
-	            .requestInterceptor(new BasicAuthRequestInterceptor("user", "password1")).target(NewUserFeignClient.class, "http://MC-PROVIDER-USER/");
-	        this.adminFeignClient = Feign.builder().client(client).encoder(encoder).decoder(decoder).contract(contract)
+	    this.userFeignClient = HystrixFeign.builder().client(client).encoder(encoder).decoder(decoder).contract(contract)
+	            .requestInterceptor(new BasicAuthRequestInterceptor("user", "password1")).target(NewUserFeignClient.class, "http://MC-PROVIDER-USER/",new FeignClientFallBackFactory());
+	            
+	            //target(NewUserFeignClient.class, "http://MC-PROVIDER-USER/",NewUserFeignClientFallBack.class);
+	            
+	        this.adminFeignClient = HystrixFeign.builder().client(client).encoder(encoder).decoder(decoder).contract(contract)
 	            .requestInterceptor(new BasicAuthRequestInterceptor("admin", "password2"))
-	            .target(NewUserFeignClient.class, "http:/MC-PROVIDER-USER/");
+	            .target(NewUserFeignClient.class, "http://MC-PROVIDER-USER/",new FeignClientFallBackFactory());
 	}
 	
 	@HystrixCommand(fallbackMethod="findIdFallBack")
@@ -54,7 +56,11 @@ public class MovieController {
 	
 	public User findIdFallBack(Long id)
 	{
-		return new User();
+		User user =  new User();
+		
+		user.setId(-1L);
+		
+		return user;
 	}
 	
 
